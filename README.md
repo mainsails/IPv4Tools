@@ -8,8 +8,6 @@ The IPv4 Tools module enables a set of functions to assist with common IP Addres
 
 
 ## Requirements
-* All Windows Client Operating Systems are supported
-   Windows 7 SP1 and Windows Server 2008R2 through to Windows 10 CB and Windows Server 2016
 * PowerShell Version 4
 
 ## Usage
