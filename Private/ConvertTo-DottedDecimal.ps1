@@ -2,7 +2,7 @@ Function ConvertTo-DottedDecimal {
     [OutputType([string])]
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Binary
     )

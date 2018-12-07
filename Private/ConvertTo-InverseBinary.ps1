@@ -2,7 +2,7 @@ Function ConvertTo-InverseBinary {
     [OutputType([string])]
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$Binary
     )

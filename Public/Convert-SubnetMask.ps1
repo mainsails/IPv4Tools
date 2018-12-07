@@ -16,6 +16,7 @@ Function Convert-SubnetMask {
         System.Management.Automation.PSCustomObject
     .EXAMPLE
         Convert-SubnetMask -Netmask 255.255.0.0
+        
         Netmask     CIDR Wildcard    Binary
         ----        ---- --------    ------
         255.255.0.0   16 0.0.255.255 11111111111111110000000000000000
