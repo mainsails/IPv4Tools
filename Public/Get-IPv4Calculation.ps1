@@ -22,7 +22,7 @@ Function Get-IPv4Calculation {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
-        [ValidateScript({ [IPAddress]$_.Split('/')[0] -and (($_.Split('/')[1] -ge 0) -and ($_.Split('/')[1] -le 32)) })]
+        [ValidateScript({ [System.Net.IPAddress]$_.Split('/')[0] -and (($_.Split('/')[1] -ge 0) -and ($_.Split('/')[1] -le 32)) })]
         [string]$Address
     )
 

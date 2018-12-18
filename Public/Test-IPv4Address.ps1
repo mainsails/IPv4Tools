@@ -27,7 +27,7 @@ Function Test-IPv4Address {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true,ValueFromPipeline=$true,Position=0)]
-        [ValidateScript({ [IPAddress]$_ })]
+        [ValidateScript({ [System.Net.IPAddress]$_ })]
         [string[]]$IPv4Address
     )
 
@@ -41,7 +41,7 @@ Function Test-IPv4Address {
     }
     End {
         ForEach ($Address in $AddressList) {
-            [IPAddress]$Address
+            [System.Net.IPAddress]$Address
         }
     }
 }

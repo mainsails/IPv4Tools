@@ -5,6 +5,7 @@ The IPv4 Tools module enables a set of functions to assist with common IP Addres
 * The ability to convert subnet masks between dotted decimal, CIDR, wildcard and binary.
 * The ability to calculate the resulting broadcast, network, wildcard mask and host range based upon an entered IP address and netmask.
 * The ability to validate an IPv4 address.
+* The ability to generate an array of IP Addresses based on a start and end address.
 
 
 ## Requirements
@@ -52,4 +53,18 @@ IsIPv6SiteLocal    : False
 IsIPv6Teredo       : False
 IsIPv4MappedToIPv6 : False
 IPAddressToString  : 192.168.0.1
+```
+
+```powershell
+New-IPRange -Start 192.168.0.0 -End 192.168.0.10 -Exclude @(0,1,255)
+
+192.168.0.2
+192.168.0.3
+192.168.0.4
+192.168.0.5
+192.168.0.6
+192.168.0.7
+192.168.0.8
+192.168.0.9
+192.168.0.10
 ```
