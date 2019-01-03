@@ -6,6 +6,7 @@ The IPv4 Tools module enables a set of functions to assist with common IP Addres
 * The ability to calculate the resulting broadcast, network, wildcard mask and host range based upon an entered IP address and netmask.
 * The ability to validate an IPv4 address.
 * The ability to generate an array of IP Addresses based on a start and end address.
+* The ability to display current ARP entries.
 
 
 ## Requirements
@@ -18,14 +19,6 @@ Convert-SubnetMask -Netmask 255.255.0.0
 Netmask     CIDR Wildcard    Binary
 ----        ---- --------    ------
 255.255.0.0   16 0.0.255.255 11111111111111110000000000000000
-```
-
-```powershell
-Convert-SubnetMask -CIDR 24
-
-Netmask       CIDR Wildcard  Binary
-----          ---- --------  ------
-255.255.255.0   24 0.0.0.255 11111111111111111111111100000000
 ```
 
 ```powershell
@@ -67,4 +60,17 @@ New-IPRange -Start 192.168.0.0 -End 192.168.0.10 -Exclude @(0,1,255)
 192.168.0.8
 192.168.0.9
 192.168.0.10
+```
+
+```powershell
+Get-ARPCache
+
+Interface   IPv4Address     MACAddress        Type
+---------   -----------     ----------        ----
+192.168.1.1 192.168.1.2     00-0C-29-63-AF-D0 dynamic
+192.168.1.1 192.168.1.255   FF-FF-FF-FF-FF-FF static
+192.168.1.1 224.0.0.22      01-00-5E-00-00-16 static
+192.168.1.1 224.0.0.252     01-00-5E-00-00-FC static
+192.168.1.1 239.255.255.250 01-00-5E-7F-FF-FA static
+192.168.1.1 255.255.255.255 FF-FF-FF-FF-FF-FF static
 ```

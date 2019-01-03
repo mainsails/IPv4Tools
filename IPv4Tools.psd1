@@ -4,7 +4,7 @@
 RootModule = 'IPv4Tools.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.1'
+ModuleVersion = '0.1.2'
 
 # ID used to uniquely identify this module
 GUID = '5fdcdb5b-1da7-4b75-b1b9-a925fb6de65d'
@@ -13,7 +13,7 @@ GUID = '5fdcdb5b-1da7-4b75-b1b9-a925fb6de65d'
 Author = 'Sam Shaw'
 
 # Copyright statement for this module
-Copyright = '(c) 2018 Sam Shaw. All rights reserved.'
+Copyright = '(c) 2019 Sam Shaw. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'Module to assist with common IP Address administration tasks'
@@ -26,6 +26,7 @@ FunctionsToExport = @('Convert-SubnetMask',
                       'ConvertTo-Binary',
                       'ConvertTo-DottedDecimal',
                       'ConvertTo-InverseBinary',
+                      'Get-ARPCache',
                       'Get-IPv4Calculation',
                       'New-IPRange',
                       'Test-IPv4Address')
