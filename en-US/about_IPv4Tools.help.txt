@@ -15,7 +15,7 @@ LONG DESCRIPTION
 EXAMPLES
     Convert-SubnetMask -Netmask 255.255.0.0
     Convert-SubnetMask -CIDR 24
-    Get-IPv4Calculation -IPv4Address 10.10.100.5/24
+    Get-IPv4Calculation -IPv4Address 10.10.100.0 -CIDR 24
     Test-IPv4Address -IPv4Address 192.168.0.1
-    New-IPRange -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
+    New-IPv4Range -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
     Get-ARPCache

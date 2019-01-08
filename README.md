@@ -22,16 +22,16 @@ Netmask     CIDR Wildcard    Binary
 ```
 
 ```powershell
-Get-IPv4Calculation -IPv4Address 10.10.100.5/24
+Get-IPv4Calculation -IPv4Address 10.10.100.0 -CIDR 24
 
-Address   : 10.10.100.5
-Netmask   : 255.255.255.0
-Wildcard  : 0.0.0.255
-Network   : 10.10.100.0/24
-Broadcast : 10.10.100.255
-HostMin   : 10.10.100.1
-HostMax   : 10.10.100.254
-Hosts/Net : 254000
+Address     : 10.10.100.0
+Netmask     : 255.255.255.0
+Wildcard    : 0.0.0.255
+Network     : 10.10.100.0/24
+Broadcast   : 10.10.100.255
+HostMin     : 10.10.100.1
+HostMax     : 10.10.100.254
+HostsPerNet : 254
 ```
 
 ```powershell
