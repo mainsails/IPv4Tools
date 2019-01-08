@@ -22,7 +22,7 @@ Netmask     CIDR Wildcard    Binary
 ```
 
 ```powershell
-Get-IPv4Calculation -Address 10.10.100.5/24
+Get-IPv4Calculation -IPv4Address 10.10.100.5/24
 
 Address   : 10.10.100.5
 Netmask   : 255.255.255.0
@@ -49,7 +49,7 @@ IPAddressToString  : 192.168.0.1
 ```
 
 ```powershell
-New-IPRange -Start 192.168.0.0 -End 192.168.0.10 -Exclude @(0,1,255)
+New-IPv4Range -StartIPv4Address 192.168.0.0 -EndIPv4Address 192.168.0.10 -Exclude @(0,1,255)
 
 192.168.0.2
 192.168.0.3

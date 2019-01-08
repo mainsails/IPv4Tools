@@ -4,7 +4,7 @@ Function Get-IPv4Calculation {
         Get-IPv4Calculation calculates the IP subnet information based upon the entered IP address and netmask.
     .DESCRIPTION
         Get-IPv4Calculation calculates the resulting broadcast, network, wildcard mask and host range based upon the entered IP address and netmask.
-    .PARAMETER Address
+    .PARAMETER IPv4Address
         Enter the IP address with netmask in CIDR notation.
     .EXAMPLE
         Get-IPv4Calculation -Address 10.10.100.5/24
@@ -23,13 +23,13 @@ Function Get-IPv4Calculation {
     Param (
         [Parameter(Mandatory=$true)]
         [ValidateScript({ [System.Net.IPAddress]$_.Split('/')[0] -and (($_.Split('/')[1] -ge 0) -and ($_.Split('/')[1] -le 32)) })]
-        [string]$Address
+        [string]$IPv4Address
     )
 
     Begin {}
     Process {
-        $IP       = $Address.Split('/')[0]
-        $Prefix   = [System.Convert]::ToInt32($Address.Split('/')[1])
+        $IP       = $IPv4Address.Split('/')[0]
+        $Prefix   = [System.Convert]::ToInt32($IPv4Address.Split('/')[1])
         $Netmask  = Convert-SubnetMask -CIDR $Prefix
         $IPBinary = ConvertTo-Binary -DottedDecimal $IP
 
