@@ -12,10 +12,10 @@ Function New-IPv4Range {
         Exclude addresses with this final octet.
         eg. '5' excludes *.*.*.5
     .EXAMPLE
-        New-IPRange -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
+        New-IPv4Range -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
         Create an array from 192.168.0.1 to 192.168.10.254
     .EXAMPLE
-        New-IPRange -StartIPv4Address 192.168.20.20 -EndIPv4Address 192.168.30.30 -Exclude @(0,1,255)
+        New-IPv4Range -StartIPv4Address 192.168.20.20 -EndIPv4Address 192.168.30.30 -Exclude @(0,1,255)
         Create an array from 192.168.20.20 to 192.168.30.30, excluding *.*.*.[0,1,255]
     #>
 
