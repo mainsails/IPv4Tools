@@ -25,13 +25,15 @@ Function Invoke-IPv4Scan {
         [IPAddress]$StartIPv4Address,
         [Parameter(ParameterSetName='Range',Position=1,Mandatory=$true)]
         [IPAddress]$EndIPv4Address,
-        [Parameter(ParameterSetName='Mask',Position=0,Mandatory=$true)]
+        [Parameter(ParameterSetName='Address',Position=0,Mandatory=$true)]
         [IPAddress]$IPv4Address,
         [Parameter(ParameterSetName='Mask',Position=1,Mandatory=$true)]
+        [Parameter(ParameterSetName='Address')]
         [ValidateScript({ $_ -match "^(254|252|248|240|224|192|128|0).0.0.0$|^255.(254|252|248|240|224|192|128|0).0.0$|^255.255.(254|252|248|240|224|192|128|0).0$|^255.255.255.(255|254|252|248|240|224|192|128|0)$" })]
-        [String]$Mask,
+        [String]$Netmask,
         [Parameter(ParameterSetName='CIDR',Position=1,Mandatory=$true)]
-        [ValidateRange(0,31)]
+        [Parameter(ParameterSetName='Address')]
+        [ValidateRange(0,32)]
         [Int32]$CIDR,
         [Int32]$Tries = 2,
         [Int32]$Threads = 256,
@@ -43,55 +45,31 @@ Function Invoke-IPv4Scan {
 
     Begin {}
     Process {
-        # Calculate Subnet (Start and End IPv4-Address)
-        If ($PSCmdlet.ParameterSetName -eq 'CIDR' -or $PSCmdlet.ParameterSetName -eq 'Mask') {
-            # Convert Subnetmask
-            If ($PSCmdlet.ParameterSetName -eq 'Mask') {
-                $CIDR = (Convert-Subnetmask -Mask $Mask).CIDR
-            }
-
-            # Create new subnet
-            $Subnet = Get-IPv4Subnet -IPv4Address $IPv4Address -CIDR $CIDR
-
-            # Assign Start and End IPv4-Address
-            $StartIPv4Address = $Subnet.NetworkID
-            $EndIPv4Address   = $Subnet.Broadcast
+        # Calculate IP range
+        If ($IPv4Address -and $Netmask) { $Mask = Convert-SubnetMask -Netmask $Netmask }
+        If ($IPv4Address -and $CIDR) { $Mask = Convert-SubnetMask -Netmask $CIDR }
+        If ($IPv4Address -and $Mask) {
+            $IP = Get-IPv4Calculation -IPv4Address $IPv4Address -Netmask $($Mask.Netmask)
+            $StartIPv4Address = $IP.HostMin
+            $EndIPv4Address   = $IP.HostMax
         }
+        [string[]]$IPRange = New-IPv4Range -StartIPv4Address $StartIPv4Address -EndIPv4Address $EndIPv4Address
+        Write-Verbose -Message "Scanning IP range from [$StartIPv4Address] to [$EndIPv4Address] :: $($IPRange.Count) IPs"
 
-        # Convert Start and End IPv4-Address to Int64
-        $StartIPv4Address_Int64 = (Convert-IPv4Address -IPv4Address $StartIPv4Address.ToString()).Int64
-        $EndIPv4Address_Int64   = (Convert-IPv4Address -IPv4Address $EndIPv4Address.ToString()).Int64
-
-        # Check if range is valid
-        If ($StartIPv4Address_Int64 -gt $EndIPv4Address_Int64) {
-            Write-Error -Message 'Invalid IP-Range... Check your input!' -Category InvalidArgument -ErrorAction Stop
-        }
-
-        # Calculate IPs to scan (range)
-        $IPsToScan = ($EndIPv4Address_Int64 - $StartIPv4Address_Int64)
-
-        Write-Verbose -Message "Scanning range from $StartIPv4Address to $EndIPv4Address ($($IPsToScan + 1) IPs)"
-        Write-Verbose -Message "Running with max $Threads threads"
-        Write-Verbose -Message "ICMP checks per IP is set to $Tries"
-
-        # Properties which are displayed in the output
+        # Set output properties
         $PropertiesToDisplay = @()
         $PropertiesToDisplay += 'IPv4Address','Status'
-
         If ($EnableMACResolving) {
             $PropertiesToDisplay += 'MAC'
         }
-
         If ($DisableDNSResolving -eq $false) {
             $PropertiesToDisplay += 'Hostname'
         }
-
         If ($ExtendedInformation) {
             $PropertiesToDisplay += 'BufferSize','ResponseTime','TTL'
         }
 
-
-        # Scriptblock --> will run in runspaces (threads)...
+        # Define scriptblock
         [System.Management.Automation.ScriptBlock]$ScriptBlock = {
             Param (
                 $IPv4Address,
@@ -102,19 +80,18 @@ Function Invoke-IPv4Scan {
                 $IncludeInactive
             )
 
-            # +++ Send ICMP requests +++
+            # ICMP
             $Status = [String]::Empty
-
             For ($i = 0; $i -lt $Tries; i++) {
                 Try {
-                    $PingObj    = New-Object System.Net.NetworkInformation.Ping
+                    $PingObj    = New-Object -TypeName System.Net.NetworkInformation.Ping
                     $Timeout    = 1000
-                    $Buffer     = New-Object Byte[] 32
-                    $PingResult = $PingObj.Send($IPv4Address, $Timeout, $Buffer)
+                    $Buffer     = New-Object -TypeName Byte[] -ArgumentList 32
+                    $PingResult = $PingObj.Send($IPv4Address,$Timeout,$Buffer)
 
                     If ($PingResult.Status -eq 'Success') {
                         $Status = 'Up'
-                        break # Exit loop, if host is reachable
+                        break
                     }
                     Else {
                         $Status = 'Down'
@@ -122,47 +99,44 @@ Function Invoke-IPv4Scan {
                 }
                 Catch {
                     $Status = 'Down'
-                    break # Exit loop, if there is an error
+                    break
                 }
             }
 
-            # +++ Resolve DNS +++
-            $Hostname = [String]::Empty
-
-            If ((-not ($DisableDNSResolving)) -and ($Status -eq 'Up' -or $IncludeInactive)) {
-                Try {
-                    $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
-                }
-                Catch {} # No DNS
-            }
-
-            # +++ Get MAC-Address +++
-            $MAC = [String]::Empty
-
-            If (($EnableMACResolving) -and (($Status -eq 'Up') -or ($IncludeInactive))) {
-                $Arp_Result = (ARP -a).ToUpper()
-                ForEach ($Line in $Arp_Result) {
-                    If ($Line.TrimStart().StartsWith($IPv4Address)) {
-                        $MAC = [Regex]::Matches($Line,"([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])").Value
-                    }
-                }
-            }
-
-            # +++ Get extended informations +++
+            # Extended Information
             $BufferSize   = [String]::Empty
             $ResponseTime = [String]::Empty
             $TTL          = $null
-
             If ($ExtendedInformation -and ($Status -eq 'Up')) {
                 Try {
                     $BufferSize   = $PingResult.Buffer.Length
                     $ResponseTime = $PingResult.RoundtripTime
                     $TTL          = $PingResult.Options.Ttl
                 }
-                Catch {} # Failed to get extended informations
+                Catch {}
             }
 
-            # +++ Result +++
+            # DNS
+            $Hostname = [String]::Empty
+            If ((-not ($DisableDNSResolving)) -and ($Status -eq 'Up' -or $IncludeInactive)) {
+                Try {
+                    $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
+                }
+                Catch {}
+            }
+
+            # MAC
+            $MAC = [String]::Empty
+            If (($EnableMACResolving) -and (($Status -eq 'Up') -or ($IncludeInactive))) {
+                $ARPCache = Get-ARPCache
+                foreach ($ARP in $ARPCache) {
+                    If ($ARP.IPv4Address -eq $IPv4Address) {
+                        $MAC = $ARP.MACAddress
+                    }
+                }
+            }
+
+            # Result
             If (($Status -eq 'Up') -or ($IncludeInactive)) {
                 [PSCustomObject] @{
                     IPv4Address  = $IPv4Address
@@ -179,19 +153,17 @@ Function Invoke-IPv4Scan {
             }
         }
 
-        # Create RunspacePool and Jobs
-        Write-Verbose -Message 'Setting up RunspacePool...'
+        # Create RunspacePool
         $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads,$Host)
         $RunspacePool.Open()
         [System.Collections.ArrayList]$Jobs = @()
 
-        # Set up Jobs for each IP...
-        Write-Verbose -Message 'Setting up Jobs...'
-        For ($i = $StartIPv4Address_Int64; $i -le $EndIPv4Address_Int64; $i++) {
-            # Convert IP back from Int64
-            $IPv4Address = (Convert-IPv4Address -Int64 $i).IPv4Address
+        # Create job for all IPs in range
+        $IPRange | ForEach-Object {
+            $Counter = 0
+            $IPv4Address = $_
 
-            # Create hashtable to pass parameters
+            # Create parameter hashtable
             $ScriptParams = @{
                 IPv4Address          = $IPv4Address
                 Tries                = $Tries
@@ -201,60 +173,28 @@ Function Invoke-IPv4Scan {
                 IncludeInactive      = $IncludeInactive
             }
 
-            # Catch when trying to divide through zero
-            Try {
-                $Progress_Percent = (($i - $StartIPv4Address_Int64) / $IPsToScan) * 100
-            }
-            Catch {
-                $Progress_Percent = 100
-            }
-
-
-            # Create new job
-            Write-Progress -Activity 'Setting up jobs...' -Id 1 -Status "Current IP-Address: $IPv4Address" -PercentComplete $Progress_Percent
+            # Create new jobs
+            Write-Progress -Activity 'Adding jobs' -Id 1 -Status "Current IP-Address : [$IPv4Address]" -PercentComplete (($Counter / $IPRange.Count) * 100)
             $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
             $Job.RunspacePool = $RunspacePool
-
-            $JobObj = [pscustomobject] @{
-                RunNum = $i - $StartIPv4Address_Int64
+            $JobObj = [PSCustomObject] @{
+                RunNum = $Counter++
                 Pipe   = $Job
                 Result = $Job.BeginInvoke()
             }
-
-            # Add job to collection
             [void]$Jobs.Add($JobObj)
         }
 
+        # Process jobs
         Write-Verbose -Message 'Waiting for jobs to complete & starting to process results...'
-
-        # Total jobs to calculate percent complete, because jobs are removed after they are processed
-        $Jobs_Total = $Jobs.Count
-
-        # Process results, while waiting for other jobs
         Do {
-            # Get all jobs, which are completed
             $Jobs_ToProcess = $Jobs | Where-Object -FilterScript { $_.Result.IsCompleted }
-
-            # If no jobs finished yet, wait 500 ms and try again
             If ($null -eq $Jobs_ToProcess) {
-                Write-Verbose -Message 'No jobs completed, wait 500ms...'
                 Start-Sleep -Milliseconds 500
                 continue
             }
-
-            # Get jobs, which are not complete yet
             $Jobs_Remaining = ($Jobs | Where-Object -FilterScript { $_.Result.IsCompleted -eq $false }).Count
-
-            # Catch when trying to divide through zero
-            Try {
-                $Progress_Percent = 100 - (($Jobs_Remaining / $Jobs_Total) * 100)
-            }
-            Catch {
-                $Progress_Percent = 100
-            }
-
-            Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete $Progress_Percent -Status "$Jobs_Remaining remaining..."
-
+            Write-Progress -Activity "Waiting for jobs to complete :: ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs_Remaining / $Jobs.Count) * 100) -Status "$Jobs_Remaining remaining"
             Write-Verbose -Message "Processing $(If ($null -eq $Jobs_ToProcess.Count) { '1' } Else { $Jobs_ToProcess.Count }) job(s)..."
 
             # Processing completed jobs
@@ -274,8 +214,7 @@ Function Invoke-IPv4Scan {
         }
         While ($Jobs.Count -gt 0)
 
-        # Close the RunspacePool and free resources
-        Write-Verbose -Message 'Closing RunspacePool and free resources...'
+        # Close the RunspacePool
         $RunspacePool.Close()
         $RunspacePool.Dispose()
     }
