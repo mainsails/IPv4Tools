@@ -28,6 +28,7 @@ FunctionsToExport = @('Convert-SubnetMask',
                       'ConvertTo-InverseBinary',
                       'Get-ARPCache',
                       'Get-IPv4Calculation',
+                      'Invoke-IPv4Scan',
                       'New-IPv4Range',
                       'Test-IPv4Address')
 
