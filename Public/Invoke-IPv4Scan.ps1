@@ -38,7 +38,7 @@ Function Invoke-IPv4Scan {
         [Int32]$Tries = 2,
         [Int32]$Threads = 256,
         [Switch]$DisableDNSResolving,
-        [Switch]$EnableMACResolving,
+        [Switch]$DisableMACResolving,
         [Switch]$ExtendedInformation,
         [Switch]$IncludeInactive
     )
@@ -47,7 +47,7 @@ Function Invoke-IPv4Scan {
     Process {
         # Calculate IP range
         If ($IPv4Address -and $Netmask) { $Mask = Convert-SubnetMask -Netmask $Netmask }
-        If ($IPv4Address -and $CIDR) { $Mask = Convert-SubnetMask -Netmask $CIDR }
+        If ($IPv4Address -and $CIDR)    { $Mask = Convert-SubnetMask -Netmask $CIDR }
         If ($IPv4Address -and $Mask) {
             $IP = Get-IPv4Calculation -IPv4Address $IPv4Address -Netmask $($Mask.Netmask)
             $StartIPv4Address = $IP.HostMin
@@ -59,7 +59,7 @@ Function Invoke-IPv4Scan {
         # Set output properties
         $PropertiesToDisplay = @()
         $PropertiesToDisplay += 'IPv4Address','Status'
-        If ($EnableMACResolving) {
+        If ($DisableMACResolving -eq $false) {
             $PropertiesToDisplay += 'MAC'
         }
         If ($DisableDNSResolving -eq $false) {
@@ -75,7 +75,7 @@ Function Invoke-IPv4Scan {
                 $IPv4Address,
                 $Tries,
                 $DisableDNSResolving,
-                $EnableMACResolving,
+                $DisableMACResolving,
                 $ExtendedInformation,
                 $IncludeInactive
             )
@@ -118,7 +118,7 @@ Function Invoke-IPv4Scan {
 
             # DNS
             $Hostname = [String]::Empty
-            If ((-not ($DisableDNSResolving)) -and ($Status -eq 'Up' -or $IncludeInactive)) {
+            If ((-not ($DisableDNSResolving)) -and (($Status -eq 'Up') -or $IncludeInactive)) {
                 Try {
                     $Hostname = ([System.Net.Dns]::GetHostEntry($IPv4Address).HostName)
                 }
@@ -127,17 +127,17 @@ Function Invoke-IPv4Scan {
 
             # MAC
             $MAC = [String]::Empty
-            If (($EnableMACResolving) -and (($Status -eq 'Up') -or ($IncludeInactive))) {
-                $ARPCache = Get-ARPCache
-                foreach ($ARP in $ARPCache) {
-                    If ($ARP.IPv4Address -eq $IPv4Address) {
-                        $MAC = $ARP.MACAddress
+            If ((-not ($DisableMACResolving)) -and (($Status -eq 'Up') -or $IncludeInactive)) {
+                $Arp_Result = (& ARP -a).ToUpper()
+                Foreach ($Line in $Arp_Result) {
+                    If ($Line.TrimStart().StartsWith($IPv4Address)) {
+                        $MAC = [Regex]::Matches($Line,'([0-9A-F][0-9A-F]-){5}([0-9A-F][0-9A-F])').Value
                     }
                 }
             }
 
             # Result
-            If (($Status -eq 'Up') -or ($IncludeInactive)) {
+            If (($Status -eq 'Up') -or $IncludeInactive) {
                 [PSCustomObject] @{
                     IPv4Address  = $IPv4Address
                     Status       = $Status
@@ -159,8 +159,8 @@ Function Invoke-IPv4Scan {
         [System.Collections.ArrayList]$Jobs = @()
 
         # Create job for all IPs in range
-        $IPRange | ForEach-Object {
-            $Counter = 0
+        $IPRange | ForEach-Object -Process {
+            $Counter++
             $IPv4Address = $_
 
             # Create parameter hashtable
@@ -168,17 +168,17 @@ Function Invoke-IPv4Scan {
                 IPv4Address          = $IPv4Address
                 Tries                = $Tries
                 DisableDNSResolving  = $DisableDNSResolving
-                EnableMACResolving   = $EnableMACResolving
+                DisableMACResolving  = $DisableMACResolving
                 ExtendedInformations = $ExtendedInformation
                 IncludeInactive      = $IncludeInactive
             }
 
             # Create new jobs
-            Write-Progress -Activity 'Adding jobs' -Id 1 -Status "Current IP-Address : [$IPv4Address]" -PercentComplete (($Counter / $IPRange.Count) * 100)
+            Write-Progress -Activity 'Adding jobs' -Id 1 -Status "Current IP-Address : [$IPv4Address]" -PercentComplete (($Counter / $($IPRange.Count)) * 100)
             $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
             $Job.RunspacePool = $RunspacePool
             $JobObj = [PSCustomObject] @{
-                RunNum = $Counter++
+                RunNum = $JobNum++
                 Pipe   = $Job
                 Result = $Job.BeginInvoke()
             }
@@ -186,18 +186,18 @@ Function Invoke-IPv4Scan {
         }
 
         # Process jobs
-        Write-Verbose -Message 'Waiting for jobs to complete & starting to process results...'
+        $TotalJobs = $Jobs.Count
         Do {
+            $Jobs_Remaining = ($Jobs | Where-Object -FilterScript { $_.Result.IsCompleted -eq $false }).Count
             $Jobs_ToProcess = $Jobs | Where-Object -FilterScript { $_.Result.IsCompleted }
             If ($null -eq $Jobs_ToProcess) {
                 Start-Sleep -Milliseconds 500
-                continue
+                Continue
             }
-            $Jobs_Remaining = ($Jobs | Where-Object -FilterScript { $_.Result.IsCompleted -eq $false }).Count
-            Write-Progress -Activity "Waiting for jobs to complete :: ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete (($Jobs_Remaining / $Jobs.Count) * 100) -Status "$Jobs_Remaining remaining"
-            Write-Verbose -Message "Processing $(If ($null -eq $Jobs_ToProcess.Count) { '1' } Else { $Jobs_ToProcess.Count }) job(s)..."
+            Write-Progress -Activity "Waiting for jobs to complete :: ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete ((($TotalJobs - $Jobs_Remaining) / $TotalJobs) * 100) -Status "$Jobs_Remaining remaining"
+            Write-Verbose -Message "Processing $(If ($null -eq $Jobs_ToProcess.Count) { '1' } Else { $Jobs_ToProcess.Count }) job(s)"
 
-            # Processing completed jobs
+            # Process completed jobs
             ForEach ($Job in $Jobs_ToProcess) {
                 # Get the result...
                 $Job_Result = $Job.Pipe.EndInvoke($Job.Result)
