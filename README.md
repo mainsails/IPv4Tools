@@ -7,6 +7,7 @@ The IPv4 Tools module enables a set of functions to assist with common IP Addres
 * The ability to validate an IPv4 address.
 * The ability to generate an array of IP Addresses based on a start and end address.
 * The ability to display current ARP entries.
+* The ability to scan an IPv4 Range.
 
 
 ## Requirements
@@ -73,4 +74,12 @@ Interface   IPv4Address     MACAddress        Type
 192.168.1.1 224.0.0.252     01-00-5E-00-00-FC static
 192.168.1.1 239.255.255.250 01-00-5E-7F-FF-FA static
 192.168.1.1 255.255.255.255 FF-FF-FF-FF-FF-FF static
+```
+
+```powershell
+Invoke-IPv4Scan -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.0.255
+
+IPv4Address   Status MAC               Hostname
+-----------   ------ ---               --------
+192.168.0.25  Up     36-8A-2C-02-93-D4 Computer1.Domain.com
 ```
