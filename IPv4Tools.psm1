@@ -11,3 +11,6 @@ ForEach ($Import in @($Public + $Private)) {
         Write-Error -Message "Failed to import Function : [$($Import.BaseName)] : $_"
     }
 }
+
+# Set Module Variable
+$Script:XML_PortList_Path = "$PSScriptRoot\Resources\IANA_ServiceName_and_TransportProtocolPortNumber_Registry.xml"
