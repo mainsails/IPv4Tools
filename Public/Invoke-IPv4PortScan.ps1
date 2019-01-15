@@ -1,9 +1,9 @@
 Function Invoke-IPv4PortScan {
     <#
     .SYNOPSIS
-        Asynchronus IPv4 Port Scanner.
+        Asynchronous IPv4 Port Scanner.
     .DESCRIPTION
-        This asynchronus IPv4 Port Scanner allows you to scan every Port-Range you want (500 to 2600 would work). Only TCP-Ports are scanned.
+        This asynchronous IPv4 Port Scanner allows you to scan every Port-Range you want (500 to 2600 would work). Only TCP-Ports are scanned.
         The result will contain the Port number, Protocol, Service name, Description and the Status.
     .PARAMETER ComputerName
         ComputerName or IPv4-Address of the device which you want to scan.
@@ -15,18 +15,20 @@ Function Invoke-IPv4PortScan {
         Maximum number of threads at the same time (Default=500).
     .PARAMETER UpdateList
         Update Service Name and Transport Protocol Port Number Registry from IANA.org.
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject
     .EXAMPLE
-       Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 500
+        Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100
 
         Port Protocol ServiceName  ServiceDescription               Status
         ---- -------- -----------  ------------------               ------
-            21 tcp      ftp          File Transfer Protocol [Control] open
-            53 tcp      domain       Domain Name Server               open
-            80 tcp      http         World Wide Web HTTP              open
+        21   tcp      ftp          File Transfer Protocol [Control] open
+        53   tcp      domain       Domain Name Server               open
+        80   tcp      http         World Wide Web HTTP              open
     #>
 
     [CmdletBinding()]
-    Param(
+    Param (
         [Parameter(Position=0,Mandatory=$true)]
         [String]$ComputerName,
         [Parameter(Position=1)]
@@ -44,15 +46,15 @@ Function Invoke-IPv4PortScan {
 
     Begin {}
     Process {
+        # Update IANA port number registry
         If ($UpdateList) {
-            Update-IANAPortNumberRegistry
+            Update-IANAPortRegistry
         }
-        $XML_PortList_Available = Test-Path -Path $Script:XML_PortList_Path -PathType Leaf
+        $PortListAvailable = Test-Path -Path $Script:IANAPortRegistry -PathType Leaf
 
-        # Check if it is possible to assign service with port --> import xml-file
-        If ($XML_PortList_Available) {
+        # Check if it is possible to assign service with port
+        If ($PortListAvailable) {
             $AssignServiceWithPort = $true
-            $XML_PortList = [xml](Get-Content -Path $Script:XML_PortList_Path)
         }
         Else {
             Write-Warning -Message 'IANA Port Number Registry not available :: Consider using the "-UpdateList" switch'
@@ -70,14 +72,12 @@ Function Invoke-IPv4PortScan {
         Write-Verbose -Message "Scanning range from $StartPort to $EndPort ($PortsToScan Ports)"
         Write-Verbose -Message "Running with max $Threads threads"
 
-        # Check if ComputerName is already an IPv4-Address, if not... try to resolve it
+        # Check if ComputerName is already an IPv4 Address and if not, try to resolve it
         $IPv4Address = [String]::Empty
-
         If ([bool]($ComputerName -as [IPAddress])) {
             $IPv4Address = $ComputerName
         }
         Else {
-            # Get IP from Hostname (IPv4 only)
             Try {
                 $AddressList = @(([System.Net.Dns]::GetHostEntry($ComputerName)).AddressList)
 
@@ -119,9 +119,9 @@ Function Invoke-IPv4PortScan {
 
             If ($Status -eq 'Open') {
                 [PSCustomObject] @{
-                    Port = $Port
+                    Port     = $Port
                     Protocol = 'tcp'
-                    Status = $Status
+                    Status   = $Status
                 }
             }
         }
@@ -208,14 +208,13 @@ Function Invoke-IPv4PortScan {
                 # Check if result is null --> if not, return it
                 If ($Job_Result.Status) {
                     If ($AssignServiceWithPort) {
-                        Get-IANAPortNumberRegistry -Result $Job_Result
+                        Get-IANAPortRegistry -Result $Job_Result
                     }
                     Else {
                         $Job_Result
                     }
                 }
             }
-
         }
         While ($Jobs.Count -gt 0)
 

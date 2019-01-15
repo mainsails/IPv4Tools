@@ -13,4 +13,4 @@ ForEach ($Import in @($Public + $Private)) {
 }
 
 # Set Module Variable
-$Script:XML_PortList_Path = "$PSScriptRoot\Resources\IANA_ServiceName_and_TransportProtocolPortNumber_Registry.xml"
+$Script:IANAPortRegistry = "$PSScriptRoot\Resources\IANA_ServiceName_and_TransportProtocolPortNumber_Registry.xml"

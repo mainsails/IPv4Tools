@@ -1,17 +1,27 @@
-Function Get-IANAPortNumberRegistry {
-# Function to assign service with port
-    Param($Result)
+Function Get-IANAPortRegistry {
+    <#
+    .SYNOPSIS
+        Private function for linking service names and descriptions to ports using a local XML copy of the IANA Service Name and Transport Protocol Port Number Registry.
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject
+    .LINK
+        Invoke-IPv4PortScan
+    .LINK
+        Update-IANAPortRegistry
+    #>
+
+    Param ($Result)
     Begin {}
     Process {
-        $XML_PortList = [xml](Get-Content -Path $Script:XML_PortList_Path)
-        
+        $PortList = [xml](Get-Content -Path $Script:IANAPortRegistry)
+
         $Service     = [String]::Empty
         $Description = [String]::Empty
 
-        ForEach ($XML_Node in $XML_PortList.Registry.Record) {
-            If (($Result.Protocol -eq $XML_Node.protocol) -and ($Result.Port -eq $XML_Node.number)) {
-                $Service     = $XML_Node.name
-                $Description = $XML_Node.description
+        ForEach ($Node in $PortList.Registry.Record) {
+            If (($Result.Protocol -eq $XML_Node.protocol) -and ($Result.Port -eq $Node.number)) {
+                $Service     = $Node.name
+                $Description = $Node.description
                 break
             }
         }

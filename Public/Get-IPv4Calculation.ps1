@@ -10,6 +10,8 @@ Function Get-IPv4Calculation {
         The CIDR prefix to perform calculation on.
     .PARAMETER Netmask
         The dotted decimal subnet mask to perform calculation on.
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject
     .EXAMPLE
         Get-IPv4Calculation -IPv4Address 10.10.100.0 -CIDR 24
 

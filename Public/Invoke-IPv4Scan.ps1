@@ -27,6 +27,8 @@ Function Invoke-IPv4Scan {
         This is an optional parameter that sets the number of threads to run concurrently.
     .PARAMETER Count
         This is an optional parameter that sets the number of echo requests to send.
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject
     .EXAMPLE
         Invoke-IPv4Scan -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.0.255
 
