@@ -3,7 +3,7 @@ Function Invoke-IPv4PortScan {
     .SYNOPSIS
         Asynchronous IPv4 Port Scanner.
     .DESCRIPTION
-        This asynchronous IPv4 Port Scanner allows you to scan every Port-Range you want (500 to 2600 would work). Only TCP-Ports are scanned.
+        This asynchronous IPv4 Port Scanner allows you to scan port ranges. Only TCP-Ports are scanned.
         The result will contain the Port number, Protocol, Service name, Description and the Status.
     .PARAMETER ComputerName
         ComputerName or IPv4-Address of the device which you want to scan.
@@ -23,7 +23,7 @@ Function Invoke-IPv4PortScan {
         Port Protocol ServiceName  ServiceDescription               Status
         ---- -------- -----------  ------------------               ------
         21   tcp      ftp          File Transfer Protocol [Control] open
-        53   tcp      domain       Domain Name Server               open
+        22   tcp      ssh          The Secure Shell (SSH) Protocol  open
         80   tcp      http         World Wide Web HTTP              open
     #>
 
