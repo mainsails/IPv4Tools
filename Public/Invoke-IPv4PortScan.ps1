@@ -68,9 +68,7 @@ Function Invoke-IPv4PortScan {
         }
 
         $PortsToScan = ($EndPort - $StartPort)
-
-        Write-Verbose -Message "Scanning range from $StartPort to $EndPort ($PortsToScan Ports)"
-        Write-Verbose -Message "Running with max $Threads threads"
+        Write-Verbose -Message "Scanning range from [$StartPort] to [$EndPort] :: $PortsToScan Ports"
 
         # Check if ComputerName is already an IPv4 Address and if not, try to resolve it
         $IPv4Address = [String]::Empty
@@ -91,11 +89,11 @@ Function Invoke-IPv4PortScan {
             Catch {}
 
             If ([String]::IsNullOrEmpty($IPv4Address)) {
-               throw "Could not get IPv4-Address for $ComputerName. (Try to enter an IPv4-Address instead of the Hostname)"
+               throw "Could not get IPv4-Address for [$ComputerName]. (Try to enter an IPv4-Address instead of the Hostname)"
             }
         }
 
-        # Scriptblock --> will run in runspaces (threads)...
+        # Define scriptblock
         [System.Management.Automation.ScriptBlock]$ScriptBlock = {
             Param (
                 $IPv4Address,
@@ -126,86 +124,55 @@ Function Invoke-IPv4PortScan {
             }
         }
 
-        # Create RunspacePool and Jobs
-        Write-Verbose -Message 'Setting up RunspacePool'
+        # Create RunspacePool
         $RunspacePool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool(1,$Threads,$Host)
         $RunspacePool.Open()
         [System.Collections.ArrayList]$Jobs = @()
 
-        #Set up job for each port...
-        Write-Verbose -Message 'Setting up Jobs'
+        # Create job for all ports in range
         ForEach ($Port in $StartPort..$EndPort) {
+            $Counter++
+
+            # Create parameter hashtable
             $ScriptParams = @{
                 IPv4Address = $IPv4Address
                 Port        = $Port
             }
 
-            # Catch when trying to divide through zero
-            Try {
-                $Progress_Percent = (($Port - $StartPort) / $PortsToScan) * 100
-            }
-            Catch {
-                $Progress_Percent = 100
-            }
-
-            Write-Progress -Activity "Setting up jobs..." -Id 1 -Status "Current Port: $Port" -PercentComplete ($Progress_Percent)
-
-            # Create new job
+            # Create new jobs
+            Write-Progress -Activity "Adding jobs" -Id 1 -Status "Current Port: [$Port]" -PercentComplete (($Counter / $($StartPort..$EndPort)) * 100)
             $Job = [System.Management.Automation.PowerShell]::Create().AddScript($ScriptBlock).AddParameters($ScriptParams)
             $Job.RunspacePool = $RunspacePool
-
             $JobObj = [PSCustomObject] @{
                 RunNum = $Port - $StartPort
                 Pipe   = $Job
                 Result = $Job.BeginInvoke()
             }
-
-            # Add job to collection
             [void]$Jobs.Add($JobObj)
         }
 
-        Write-Verbose -Message 'Waiting for jobs to complete & starting to process results'
-
-        # Total jobs to calculate percent complete, because jobs are removed after they are processed
-        $Jobs_Total = $Jobs.Count
-
-        # Process results, while waiting for other jobs
+        # Process jobs
+        $TotalJobs = $Jobs.Count
         Do {
-            # Get all jobs, which are completed
-            $Jobs_ToProcess = $Jobs | Where-Object -FilterScript {$_.Result.IsCompleted}
-
-            # If no jobs finished yet, wait 500 ms and try again
-            If ($null -eq $Jobs_ToProcess) {
-                Write-Verbose -Message 'No jobs completed, wait 500ms'
-                Start-Sleep -Milliseconds 500
-                continue
-            }
-
-            # Get jobs, which are not complete yet
             $Jobs_Remaining = ($Jobs | Where-Object -FilterScript { $_.Result.IsCompleted -eq $false }).Count
-
-            # Catch when trying to divide through zero
-            Try {
-                $Progress_Percent = 100 - (($Jobs_Remaining / $Jobs_Total) * 100)
+            $Jobs_ToProcess = $Jobs | Where-Object -FilterScript {$_.Result.IsCompleted}
+            If ($null -eq $Jobs_ToProcess) {
+                Start-Sleep -Milliseconds 500
+                Continue
             }
-            Catch {
-                $Progress_Percent = 100
-            }
-
-            Write-Progress -Activity "Waiting for jobs to complete... ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete $Progress_Percent -Status "$Jobs_Remaining remaining..."
-
+            Write-Progress -Activity "Waiting for jobs to complete :: ($($Threads - $($RunspacePool.GetAvailableRunspaces())) of $Threads threads running)" -Id 1 -PercentComplete ((($TotalJobs - $Jobs_Remaining) / $TotalJobs) * 100) -Status "$Jobs_Remaining remaining"
             Write-Verbose -Message "Processing $(If ($null -eq $Jobs_ToProcess.Count) { '1' } Else { $Jobs_ToProcess.Count }) job(s)"
 
-            # Processing completed jobs
+            # Process completed jobs
             ForEach ($Job in $Jobs_ToProcess) {
-                # Get the result...
+                # Get the result
                 $Job_Result = $Job.Pipe.EndInvoke($Job.Result)
                 $Job.Pipe.Dispose()
 
-                # Remove job from collection
+                # Remove job
                 $Jobs.Remove($Job)
 
-                # Check if result is null --> if not, return it
+                # Check result
                 If ($Job_Result.Status) {
                     If ($AssignServiceWithPort) {
                         Get-IANAPortRegistry -Result $Job_Result
@@ -218,9 +185,7 @@ Function Invoke-IPv4PortScan {
         }
         While ($Jobs.Count -gt 0)
 
-        Write-Verbose -Message "Closing RunspacePool and free resources..."
-
-        # Close the RunspacePool and free resources
+        # Close the RunspacePool
         $RunspacePool.Close()
         $RunspacePool.Dispose()
     }
