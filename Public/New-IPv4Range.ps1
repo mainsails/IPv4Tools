@@ -11,6 +11,8 @@ Function New-IPv4Range {
     .PARAMETER Exclude
         Exclude addresses with this final octet.
         eg. '5' excludes *.*.*.5
+    .OUTPUTS
+        System.String
     .EXAMPLE
         New-IPv4Range -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
         Create an array from 192.168.0.1 to 192.168.10.254

@@ -4,6 +4,8 @@ Function Get-ARPCache {
         Get the ARP cache.
     .DESCRIPTION
         Get the Address Resolution Protocol (ARP) tables for all network interfaces on the local computer.
+    .OUTPUTS
+        System.Management.Automation.PSCustomObject
     .EXAMPLE
         Get-ARPCache
 

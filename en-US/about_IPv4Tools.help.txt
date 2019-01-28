@@ -12,6 +12,7 @@ LONG DESCRIPTION
     - The ability to generate an array of IP Addresses based on a start and end address.
     - The ability to display current ARP entries.
     - The ability to scan an IPv4 Range.
+    - The ability to scan a defined range of TCP ports.
 
 EXAMPLES
     Convert-SubnetMask -Netmask 255.255.0.0
@@ -21,3 +22,4 @@ EXAMPLES
     New-IPv4Range -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
     Get-ARPCache
     Invoke-IPv4Scan -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.0.255
+    Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100

@@ -8,6 +8,7 @@ The IPv4 Tools module enables a set of functions to assist with common IP Addres
 * The ability to generate an array of IP Addresses based on a start and end address.
 * The ability to display current ARP entries.
 * The ability to scan an IPv4 Range.
+* The ability to scan a defined range of TCP ports.
 
 
 ## Requirements
@@ -82,4 +83,14 @@ Invoke-IPv4Scan -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.0.255
 IPv4Address   Status MAC               Hostname
 -----------   ------ ---               --------
 192.168.0.25  Up     36-8A-2C-02-93-D4 Computer1.Domain.com
+```
+
+```powershell
+Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100
+
+Port Protocol ServiceName  ServiceDescription               Status
+---- -------- -----------  ------------------               ------
+21   tcp      ftp          File Transfer Protocol [Control] open
+22   tcp      ssh          The Secure Shell (SSH) Protocol  open
+80   tcp      http         World Wide Web HTTP              open
 ```

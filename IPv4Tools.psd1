@@ -4,7 +4,7 @@
 RootModule = 'IPv4Tools.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.3'
+ModuleVersion = '0.1.4'
 
 # ID used to uniquely identify this module
 GUID = '5fdcdb5b-1da7-4b75-b1b9-a925fb6de65d'
@@ -23,11 +23,9 @@ PowerShellVersion = '4.0'
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = @('Convert-SubnetMask',
-                      'ConvertTo-Binary',
-                      'ConvertTo-DottedDecimal',
-                      'ConvertTo-InverseBinary',
                       'Get-ARPCache',
                       'Get-IPv4Calculation',
+                      'Invoke-IPv4PortScan',
                       'Invoke-IPv4Scan',
                       'New-IPv4Range',
                       'Test-IPv4Address')
