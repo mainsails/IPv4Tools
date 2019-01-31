@@ -22,4 +22,4 @@ EXAMPLES
     New-IPv4Range -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.10.254
     Get-ARPCache
     Invoke-IPv4Scan -StartIPv4Address 192.168.0.1 -EndIPv4Address 192.168.0.255
-    Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100
+    Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -StartPort 1 -EndPort 100

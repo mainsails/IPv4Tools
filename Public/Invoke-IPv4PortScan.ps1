@@ -18,7 +18,7 @@ Function Invoke-IPv4PortScan {
     .OUTPUTS
         System.Management.Automation.PSCustomObject
     .EXAMPLE
-        Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100
+        Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -StartPort 1 -EndPort 100
 
         Port Protocol ServiceName  ServiceDescription               Status
         ---- -------- -----------  ------------------               ------

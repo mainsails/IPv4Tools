@@ -86,7 +86,7 @@ IPv4Address   Status MAC               Hostname
 ```
 
 ```powershell
-Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -EndPort 100
+Invoke-IPv4PortScan -ComputerName ComputerA.domain.com -StartPort 1 -EndPort 100
 
 Port Protocol ServiceName  ServiceDescription               Status
 ---- -------- -----------  ------------------               ------
